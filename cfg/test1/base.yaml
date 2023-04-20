@@ -1,0 +1,19 @@
+config: |
+  metrics:
+    global:
+      scrape_interval: 60s
+      remote_write:
+        - basic_auth:
+            password_file: /var/lib/grafana-agent/rw.key
+            username: 123
+          url: https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push
+    wal_directory: /var/lib/grafana-agent/wal
+
+  logs:
+    positions_directory: /var/lib/grafana-agent
+    global:
+      clients:
+        - basic_auth:
+            password_file: /var/lib/grafana-agent/rw.key
+            username: 456
+          url: https://logs-prod-eu-west-0.grafana.net/loki/api/v1/push

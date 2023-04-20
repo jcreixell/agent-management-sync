@@ -1,0 +1,25 @@
+config: |
+  integration_configs:
+    node_exporter:
+      enabled: true
+      relabel_configs:
+        - replacement: test
+          target_label: instance
+  logs_scrape_configs:
+    - job_name: integrations/node_exporter_journal_scrape
+      journal:
+        max_age: 24h
+        labels:
+          instance: test
+          job: integrations/node_exporter
+      relabel_configs:
+      - source_labels: ['__journal__systemd_unit']
+        target_label: 'unit'
+      - source_labels: ['__journal__boot_id']
+        target_label: 'boot_id'
+      - source_labels: ['__journal__transport']
+        target_label: 'transport'
+      - source_labels: ['__journal_priority_keyword']
+        target_label: 'level'
+selector:
+  system_name: test

@@ -1,0 +1,30 @@
+config: |
+  integration_configs:
+    agent:
+      enabled: true
+      relabel_configs:
+        - action: replace
+          source_labels:
+            - agent_hostname
+          target_label: instance
+  logs_scrape_configs:
+    - job_name: integrations/agent
+      journal:
+        max_age: 24h
+        labels:
+          instance: test
+          job: integrations/agent
+      pipeline_stages:
+        - match:
+            selector: '{unit!="grafana-agent.service"}'
+            action: drop
+            drop_counter_reason: only_keep_grafana_agent_logs
+        - regex:
+            expression: "(level=(?P<log_level>[\\s]*debug|warn|info|error))"
+        - labels:
+            level: log_level
+      relabel_configs:
+        - source_labels: ['__journal__systemd_unit']
+          target_label: 'unit'
+selector:
+  system_name: test
