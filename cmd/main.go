@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,29 +15,19 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type (
-	// SnippetID is the ID of a config snippet
-	SnippetID string
-	// BaseConfigContent is the content of a base config
-	BaseConfigContent string
-	// Selector is a map of selector labels
-	Selector map[string]string
-)
+type Selector map[string]string
 
 type Namespace struct {
-	BaseConfig BaseConfigContent      `json:"base_config" yaml:"base_config"`
-	Snippets   map[SnippetID]*Snippet `json:"snippets" yaml:"snippets"`
+	BaseConfig string              `json:"base_config" yaml:"base_config"`
+	Snippets   map[string]*Snippet `json:"snippets" yaml:"snippets"`
 }
 
 type BaseConfig struct {
 	Config string `json:"config" yaml:"config"`
 }
 
-// Snippet is a snippet of configuration for a specific selectors.
 type Snippet struct {
-	// Config is the snippet of config to be included.
-	Config string `json:"config" yaml:"config"`
-	// Selector is map to label the snippet.
+	Config   string   `json:"config" yaml:"config"`
 	Selector Selector `json:"selector" yaml:"selector"`
 }
 
@@ -44,9 +35,11 @@ const configPath = "cfg/"
 const baseFilename = "base.yaml"
 const snipsPath = "snips/"
 const apiPath = "agent-management/api/config/v1/namespace"
+const apiScheme = "https"
 
 var APIHost = os.Getenv("AGENT_MANAGEMENT_HOST")
-var APIToken = os.Getenv("AGENT_MANAGEMENT_TOKEN")
+var APIUsername = os.Getenv("AGENT_MANAGEMENT_USERNAME")
+var APIPassword = os.Getenv("AGENT_MANAGEMENT_PASSWORD")
 
 func main() {
 	files, err := ioutil.ReadDir(configPath)
@@ -62,6 +55,8 @@ func main() {
 }
 
 func processNamespace(name string) {
+	fmt.Printf("Processing namespace \"%v\"...", name)
+
 	nsPath := filepath.Join(configPath, name)
 	nsSnipsPath := filepath.Join(nsPath, snipsPath)
 
@@ -80,14 +75,14 @@ func processNamespace(name string) {
 		log.Fatal(err)
 	}
 
-	snips := make(map[SnippetID]*Snippet, len(snipsFiles))
+	snips := make(map[string]*Snippet, len(snipsFiles))
 	for _, file := range snipsFiles {
 		if !file.IsDir() {
 			snipBuf, err := os.ReadFile(filepath.Join(nsSnipsPath, file.Name()))
 			if err != nil {
 				log.Fatal(err)
 			}
-			id := SnippetID(strings.TrimSuffix(file.Name(), filepath.Ext(file.Name())))
+			id := string(strings.TrimSuffix(file.Name(), filepath.Ext(file.Name())))
 			var snip Snippet
 			err = yaml.Unmarshal(snipBuf, &snip)
 			if err != nil {
@@ -99,7 +94,7 @@ func processNamespace(name string) {
 	}
 
 	ns := Namespace{
-		BaseConfig: BaseConfigContent(base.Config),
+		BaseConfig: base.Config,
 		Snippets:   snips,
 	}
 
@@ -108,23 +103,27 @@ func processNamespace(name string) {
 		log.Fatal(err)
 	}
 
-	uri, err := url.JoinPath("http://", APIHost, apiPath, name)
+	uri, err := url.JoinPath(fmt.Sprintf("%v://", apiScheme), APIHost, apiPath, name)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	token := fmt.Sprintf("%v:%v", APIUsername, APIPassword)
+	encodedToken := base64.StdEncoding.EncodeToString([]byte(token))
 
 	req, err := http.NewRequest("PUT", uri, bytes.NewBuffer(payload))
 	if err != nil {
 		log.Fatal(err)
 	}
+	req.Header.Add("Authorization", fmt.Sprintf("Basic %v", encodedToken))
 
-	fmt.Println(uri)
-
-	req.Header.Add("Authorization", fmt.Sprintf("Basic %v", APIToken))
 	client := &http.Client{}
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("something went wrong, aborting: Error: %v", err))
 	}
-	fmt.Println("Done!")
+	if resp.StatusCode != 202 {
+		log.Fatal(fmt.Errorf("something went wrong, aborting: Status Code %v", resp.StatusCode))
+	}
+	fmt.Printf(" Done\n")
 }
