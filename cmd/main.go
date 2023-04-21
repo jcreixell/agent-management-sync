@@ -31,7 +31,6 @@ type Snippet struct {
 	Selector Selector `json:"selector" yaml:"selector"`
 }
 
-const configPath = "cfg/"
 const baseFilename = "base.yaml"
 const snipsPath = "snips/"
 const apiPath = "agent-management/api/config/v1/namespace"
@@ -40,9 +39,10 @@ const apiScheme = "https"
 var APIHost = os.Getenv("AGENT_MANAGEMENT_HOST")
 var APIUsername = os.Getenv("AGENT_MANAGEMENT_USERNAME")
 var APIPassword = os.Getenv("AGENT_MANAGEMENT_PASSWORD")
+var ConfigPath = os.Getenv("CONFIG_PATH")
 
 func main() {
-	files, err := ioutil.ReadDir(configPath)
+	files, err := ioutil.ReadDir(ConfigPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,7 +57,7 @@ func main() {
 func processNamespace(name string) {
 	fmt.Printf("Processing namespace \"%v\"...", name)
 
-	nsPath := filepath.Join(configPath, name)
+	nsPath := filepath.Join(ConfigPath, name)
 	nsSnipsPath := filepath.Join(nsPath, snipsPath)
 
 	baseBuf, err := os.ReadFile(filepath.Join(nsPath, baseFilename))
