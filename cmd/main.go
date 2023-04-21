@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -71,7 +72,7 @@ func processNamespace(name string) {
 	}
 
 	snipsFiles, err := ioutil.ReadDir(nsSnipsPath)
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Fatal(err)
 	}
 
