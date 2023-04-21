@@ -1,7 +1,5 @@
 # Agent Management Sync
 
-POC: Syncs a collection of namespaces following the filesystem structure:
-
 Syncs a collection of namespaces following the filesystem structure:
 
 ```
