@@ -34,7 +34,7 @@ type Snippet struct {
 
 const baseFilename = "base.yaml"
 const snipsPath = "snips/"
-const apiPath = "agent-management/api/config/v1/namespace"
+const apiPath = "agent-management/api/config/v1/namespaces"
 const apiScheme = "https"
 
 var APIHost = os.Getenv("AGENT_MANAGEMENT_HOST")

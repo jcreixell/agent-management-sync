@@ -1,3 +1,4 @@
+config_format: static.agent.grafana.com/v1
 config: |
   integration_configs:
     node_exporter:
